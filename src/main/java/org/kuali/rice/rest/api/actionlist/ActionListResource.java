@@ -1,7 +1,9 @@
 package org.kuali.rice.rest.api.actionlist;
 
 import com.wordnik.swagger.annotations.Api;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.ws.rs.core.MediaType;
@@ -15,4 +17,9 @@ import javax.ws.rs.core.MediaType;
 @RequestMapping(value = "/api/v1/actionlist", produces = MediaType.APPLICATION_JSON)
 @Api(value = "/actionlist", description = "Operations on actionlist")
 public class ActionListResource {
+
+    @RequestMapping(method = RequestMethod.GET)
+    public ResponseEntity<String> test(){
+        return ResponseEntity.ok("It works");
+    }
 }
