@@ -50,8 +50,7 @@ public class DocumentSearchRestController {
             httpMethod = "GET",
             value = "List documents for principalId using paging",
             notes = "List documents for principalId using paging and limiting results.  " +
-                    "Filters can also be applied. Note: dateCreated is required by the service. dateCreated will default to" +
-                    "greater than or equal to current date minus a year, if not supplied in the filter (ex. &lt;=03/10/2015)",
+                    "Filters can also be applied (and can use wildcards/range).",
             response = RicePagedResources.class
     )
     public ResponseEntity<RicePagedResources<DocumentResource>> getDocuments(@ApiParam(value = "Principal Id of user to retrieve documents for") @RequestParam(value = "principalId", required = false) String principalId,
