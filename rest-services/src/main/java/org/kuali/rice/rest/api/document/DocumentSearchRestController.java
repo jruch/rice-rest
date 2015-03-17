@@ -64,14 +64,6 @@ public class DocumentSearchRestController {
             criteria.put("isAdvancedSearch", "NO");
         }
 
-        // dateCreated is REQUIRED by the document service
-        if (!criteria.containsKey("dateCreated")) {
-            DateTime today = new DateTime();
-            today = today.minusYears(1);
-            DateTimeFormatter format = DateTimeFormat.forPattern("MM/dd/yyyy");
-            criteria.put("dateCreated", ">=" + today.toString(format));
-        }
-
         DocumentSearchCriteria serviceCriteria = translator.translateFieldsToCriteria(criteria);
         DocumentSearchCriteria.Builder builder = DocumentSearchCriteria.Builder.create(serviceCriteria);
 

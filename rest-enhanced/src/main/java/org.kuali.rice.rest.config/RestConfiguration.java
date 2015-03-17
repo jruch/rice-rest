@@ -7,12 +7,17 @@ package org.kuali.rice.rest.config;
 import com.mangofactory.swagger.configuration.SpringSwaggerConfig;
 import com.mangofactory.swagger.models.dto.*;
 import com.mangofactory.swagger.models.dto.builder.OAuthBuilder;
+import com.mangofactory.swagger.paths.RelativeSwaggerPathProvider;
+import com.mangofactory.swagger.paths.SwaggerPathProvider;
 import com.mangofactory.swagger.plugin.EnableSwagger;
 import com.mangofactory.swagger.plugin.SwaggerSpringMvcPlugin;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.servlet.ServletContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,6 +28,9 @@ public class RestConfiguration {
     private SpringSwaggerConfig springSwaggerConfig;
 
     @Autowired
+    private ServletContext servletContext;
+
+    @Autowired
     public void setSpringSwaggerConfig(SpringSwaggerConfig springSwaggerConfig) {
         this.springSwaggerConfig = springSwaggerConfig;
     }
@@ -30,10 +38,9 @@ public class RestConfiguration {
     @Bean
     public SwaggerSpringMvcPlugin customImplementation() {
         return new SwaggerSpringMvcPlugin(this.springSwaggerConfig).authorizationTypes(authType())
+                .pathProvider(new CustomSwaggerPathProvider(servletContext))
                 .apiInfo(apiInfo())
                 .includePatterns(".*document.*")
-                .includePatterns(".*kim.*")
-                .includePatterns(".*actionlist.*")
                 .useDefaultResponseMessages(false);
     }
 
