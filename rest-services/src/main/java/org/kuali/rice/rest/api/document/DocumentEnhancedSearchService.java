@@ -49,7 +49,6 @@ public class DocumentEnhancedSearchService extends DocumentSearchServiceImpl {
             builtCriteria = patchedCriteria.build();
         }
 
-        builtCriteria = applyCriteriaDefaults(builtCriteria);
         boolean criteriaModified = !criteria.equals(builtCriteria);
         List<RemotableAttributeField> searchFields = determineSearchFields(documentType);
         DocumentSearchResults.Builder searchResults = documentEnhancedSearchDAO.findDocuments(docSearchGenerator, builtCriteria, criteriaModified, searchFields);
@@ -101,43 +100,8 @@ public class DocumentEnhancedSearchService extends DocumentSearchServiceImpl {
         return searchResults.build();
     }
 
-
+    @Override
     protected DocumentSearchCriteria applyCriteriaDefaults(DocumentSearchCriteria criteria) {
-        DocumentSearchCriteria.Builder comparisonCriteria = createEmptyComparisonCriteria(criteria);
-        boolean isCriteriaEmpty = criteria.equals(comparisonCriteria.build());
-        boolean isTitleOnly = false;
-        boolean isDocTypeOnly = false;
-        if (!isCriteriaEmpty) {
-            comparisonCriteria.setTitle(criteria.getTitle());
-            isTitleOnly = criteria.equals(comparisonCriteria.build());
-        }
-
-        if (!isCriteriaEmpty && !isTitleOnly) {
-            comparisonCriteria = createEmptyComparisonCriteria(criteria);
-            comparisonCriteria.setDocumentTypeName(criteria.getDocumentTypeName());
-            isDocTypeOnly = criteria.equals(comparisonCriteria.build());
-        }
-
-        if (isCriteriaEmpty || isTitleOnly || isDocTypeOnly) {
-            DocumentSearchCriteria.Builder criteriaBuilder = DocumentSearchCriteria.Builder.create(criteria);
-            Integer defaultCreateDateDaysAgoValue = null;
-            if (isCriteriaEmpty || isDocTypeOnly) {
-                // if they haven't set any criteria, default the from created date to today minus days from constant variable
-                defaultCreateDateDaysAgoValue = KewApiConstants.DOCUMENT_SEARCH_NO_CRITERIA_CREATE_DATE_DAYS_AGO;
-            } else if (isTitleOnly) {
-                // If the document title is the only field which was entered, we want to set the "from" date to be X
-                // days ago.  This will allow for a more efficient query.
-                defaultCreateDateDaysAgoValue = KewApiConstants.DOCUMENT_SEARCH_DOC_TITLE_CREATE_DATE_DAYS_AGO;
-            }
-
-            if (defaultCreateDateDaysAgoValue != null) {
-                // add a default create date
-                MutableDateTime mutableDateTime = new MutableDateTime();
-                mutableDateTime.addDays(defaultCreateDateDaysAgoValue.intValue());
-                criteriaBuilder.setDateCreatedFrom(mutableDateTime.toDateTime());
-            }
-            criteria = criteriaBuilder.build();
-        }
         return criteria;
     }
 
