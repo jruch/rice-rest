@@ -6,4 +6,5 @@ package org.kuali.rice.rest;
 public class RiceRestConstants {
     public static final String API_URL = "/api/v1";
     public static final String DOCUMENT_SEARCH_DEFAULT_LIMIT = "500";
+    public static final String MAX_RESULTS = "5";
 }
