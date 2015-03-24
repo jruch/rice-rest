@@ -34,12 +34,12 @@ public class GroupResource extends ResourceSupport {
 
     private boolean active;
 
-    @ApiModelProperty(value = "Namespace code")
+    @ApiModelProperty(value = "Namespace code", required = true)
     public String getNamespaceCode() {
         return namespaceCode;
     }
 
-    @ApiModelProperty(value = "Name of the croup")
+    @ApiModelProperty(value = "Name of the group", required = true)
     public String getName() {
         return name;
     }
@@ -49,7 +49,7 @@ public class GroupResource extends ResourceSupport {
         return description;
     }
 
-    @ApiModelProperty(value = "Group's Kim Type")
+    @ApiModelProperty(value = "Group's Kim Type", required = true)
     public String getKimTypeId() {
         return kimTypeId;
     }
@@ -64,7 +64,7 @@ public class GroupResource extends ResourceSupport {
         return objectId;
     }
 
-    @ApiModelProperty(value = "Group Id", required=true)
+    @ApiModelProperty(value = "Group Id", required = true)
     public String getGroupId() {
         return groupId;
     }

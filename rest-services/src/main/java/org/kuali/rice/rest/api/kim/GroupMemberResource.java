@@ -41,26 +41,53 @@ public class GroupMemberResource extends ResourceSupport {
     private boolean active;
 
 
-    @ApiModelProperty(value = "Type code")
+    @ApiModelProperty(value = "Type code", required = true)
     public String getTypeCode() {
         return typeCode;
     }
 
+    @ApiModelProperty(value = "Member's parent group", required = true)
     public String getGroupId() {
         return groupId;
     }
 
-    @ApiModelProperty(value = "Member's parent group")
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
-
+    @ApiModelProperty(value = "Member's id same as principalId", required = true)
     public String getMemberId() {
         return memberId;
     }
 
     public MemberType getType() {
-        return MemberType.fromCode( typeCode );
+        return MemberType.fromCode(typeCode);
+    }
+
+    @ApiModelProperty(value = "Active from date")
+    public DateTime getActiveToDate() {
+        return activeToDate;
+    }
+
+    @ApiModelProperty(value = "System property indicating database version")
+    public Long getVersionNumber() {
+        return versionNumber;
+    }
+
+    @ApiModelProperty(value = "System generated database Id")
+    public String getObjectId() {
+        return objectId;
+    }
+
+    @ApiModelProperty(value = "Indicates if the member is active")
+    public boolean isActive() {
+        return active;
+    }
+
+    @ApiModelProperty(value = "System Id of group member")
+    public String getRecId() {
+        return recId;
+    }
+
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 
     public void setMemberId(String memberId) {
@@ -79,36 +106,16 @@ public class GroupMemberResource extends ResourceSupport {
         this.activeFromDate = activeFromDate;
     }
 
-    @ApiModelProperty(value = "Active from date")
-    public DateTime getActiveToDate() {
-        return activeToDate;
-    }
-
     public void setActiveToDate(DateTime activeToDate) {
         this.activeToDate = activeToDate;
-    }
-
-    @ApiModelProperty(value = "System property indicating database version")
-    public Long getVersionNumber() {
-        return versionNumber;
     }
 
     public void setVersionNumber(Long versionNumber) {
         this.versionNumber = versionNumber;
     }
 
-    @ApiModelProperty(value = "System generated database Id")
-    public String getObjectId() {
-        return objectId;
-    }
-
     public void setObjectId(String objectId) {
         this.objectId = objectId;
-    }
-
-    @ApiModelProperty(value = "Indicates if the member is active")
-    public boolean isActive() {
-        return active;
     }
 
     public void setActive(boolean active) {
@@ -119,11 +126,6 @@ public class GroupMemberResource extends ResourceSupport {
         typeCode = type.getCode();
     }
 
-    @ApiModelProperty(value = "System Id of group member")
-    public String getRecId() {
-        return recId;
-    }
-
     public void setRecId(String recId) {
         this.recId = recId;
     }
@@ -131,8 +133,8 @@ public class GroupMemberResource extends ResourceSupport {
     public static GroupMemberResource fromGroupMember(GroupMember member) {
         GroupMemberResource gmr = new GroupMemberResource();
         try {
-            BeanUtils.copyProperties(member, gmr, new String[] {"id"});
-            gmr.setActive( member.isActive() );
+            BeanUtils.copyProperties(member, gmr, new String[]{"id"});
+            gmr.setActive(member.isActive());
             gmr.setRecId(member.getId());
         } catch (Exception e) {
             throw new OperationFailedException(e.getMessage());
@@ -145,12 +147,11 @@ public class GroupMemberResource extends ResourceSupport {
         GroupMember.Builder mbr = GroupMember.Builder.create(memberResource.getGroupId(), memberResource.getMemberId(), memberResource.getType());
 
         try {
-            BeanUtils.copyProperties(memberResource, mbr, new String[] {"id", "recId"});
+            BeanUtils.copyProperties(memberResource, mbr, new String[]{"id", "recId"});
             mbr.setId(memberResource.getRecId());
         } catch (Exception e) {
             throw new OperationFailedException(e.getMessage());
         }
-
 
         return mbr.build();
     }
