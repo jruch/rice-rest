@@ -13,6 +13,8 @@ import org.kuali.rice.kim.api.services.KimApiServiceLocator;
 import org.kuali.rice.rest.exception.BadRequestException;
 import org.kuali.rice.rest.exception.NotFoundException;
 import org.kuali.rice.rest.exception.OperationFailedException;
+import org.springframework.hateoas.Link;
+import org.springframework.hateoas.mvc.ControllerLinkBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,13 +42,17 @@ public class KimGroupRestController {
 
     private GroupService groupService = KimApiServiceLocator.getGroupService();
 
+    private GroupResourceAssembler groupResourceAssembler = new GroupResourceAssembler();
+
+    private GroupMemberResourceAssembler groupMemberResourceAssembler = new GroupMemberResourceAssembler();
+
     @ApiOperation(
             httpMethod = "GET",
             value = "Returns a kim group given the groupId",
             response = Group.class
     )
     @RequestMapping(value="/{id}", method = RequestMethod.GET)
-    public @ResponseBody GroupResource getGroup(@ApiParam(value = "Id of the group", required = true) @PathVariable("id") String id) {
+    public ResponseEntity<GroupResource>  getGroup(@ApiParam(value = "Id of the group", required = true) @PathVariable("id") String id) {
         if (StringUtils.isBlank(id)) {
             throw new BadRequestException();
         }
@@ -55,7 +61,7 @@ public class KimGroupRestController {
             throw new NotFoundException();
         }
 
-        return GroupResource.fromGroup(group);
+        return new ResponseEntity<GroupResource>(groupResourceAssembler.toResource(group), HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -65,17 +71,17 @@ public class KimGroupRestController {
     )
     @RequestMapping(method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
-    @ResponseBody GroupResource createGroup(@ApiParam(value = "The group to be created", required = true) @RequestBody GroupResource groupResource){
+    @ResponseBody ResponseEntity<GroupResource> createGroup(@ApiParam(value = "The group to be created", required = true) @RequestBody GroupResource groupResource){
         if(null == groupResource)  {
             throw new BadRequestException();
         }
-        Group newGroup =  groupService.createGroup( Group.Builder.create(groupResource).build() );
+        Group newGroup =  groupService.createGroup( GroupResource.toGroup(groupResource) );
 
         if(null == newGroup) {
             throw new OperationFailedException("Could not create group!");
         }
 
-        return GroupResource.fromGroup( newGroup);
+        return new ResponseEntity<GroupResource>(groupResourceAssembler.toResource(newGroup), HttpStatus.CREATED);
     }
 
     @ApiOperation(
@@ -88,7 +94,7 @@ public class KimGroupRestController {
             response = Group.class
     )
     @RequestMapping(value = "/{groupId}", method = RequestMethod.PUT)
-    @ResponseBody GroupResource updateGroup(@ApiParam(value = "Id of the group to be updated", required = true) @PathVariable("groupId") String groupId,
+    @ResponseBody ResponseEntity<GroupResource> updateGroup(@ApiParam(value = "Id of the group to be updated", required = true) @PathVariable("groupId") String groupId,
                                     @ApiParam(value = "Group object to use for update", required = true) @RequestBody GroupResource groupResource) {
         if (StringUtils.isBlank(groupId) || groupResource == null) {
             throw new BadRequestException();
@@ -97,16 +103,16 @@ public class KimGroupRestController {
         Group updatedGroup = null;
 
         if(groupId.equals( groupResource.getId()) ) {
-            updatedGroup = groupService.updateGroup( Group.Builder.create(groupResource).build() );
+            updatedGroup = groupService.updateGroup( GroupResource.toGroup(groupResource) );
         } else {
-            updatedGroup = groupService.updateGroup(groupId, Group.Builder.create(groupResource).build() );
+            updatedGroup = groupService.updateGroup(groupId, GroupResource.toGroup(groupResource) );
         }
 
         if(null == updatedGroup) {
             throw new OperationFailedException("Failed to update group: " + groupId);
         }
 
-        return GroupResource.fromGroup( updatedGroup );
+        return new ResponseEntity<GroupResource>(groupResourceAssembler.toResource(updatedGroup), HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -117,7 +123,7 @@ public class KimGroupRestController {
             response = Iterable.class
     )
     @RequestMapping(method = RequestMethod.GET)
-    public @ResponseBody Iterable<GroupResource> retrieveGroups(@ApiParam(value = "The id of the Principal") @QueryParam("principalId") String principalId,
+    public @ResponseBody ResponseEntity<Iterable<GroupResource>> retrieveGroups(@ApiParam(value = "The id of the Principal") @QueryParam("principalId") String principalId,
                                                         @ApiParam(value = "The namespace code of the desired Groups to return") @QueryParam("namespaceCode") String namespaceCode,
                                                         @ApiParam(value = "String that matches the desired Group's name") @QueryParam("groupName") String groupName) {
         List<Group> groupList = null;
@@ -134,14 +140,12 @@ public class KimGroupRestController {
             throw new BadRequestException("Legal query params are: just principalId, principalId and namespacecode or namespacecode and groupName");
         }
 
-
-
         List<GroupResource> groupResources = new ArrayList<GroupResource>();
         for(Group group : groupList) {
-            groupResources.add ( GroupResource.fromGroup( group ) );
+            groupResources.add(groupResourceAssembler.toResource(group));
         }
 
-        return groupResources;
+        return new ResponseEntity<Iterable<GroupResource>> (groupResources, HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -151,7 +155,7 @@ public class KimGroupRestController {
             response = Iterable.class
     )
     @RequestMapping(value="/group-refs", method = RequestMethod.GET)
-    public @ResponseBody Iterable<IdRefResource> retrieveGroupRefs(@ApiParam(value = "The id of the Principal") @QueryParam("principalId") String principalId,
+    public @ResponseBody ResponseEntity<Iterable<Link>> retrieveGroupRefs(@ApiParam(value = "The id of the Principal") @QueryParam("principalId") String principalId,
                                                             @ApiParam(value = "The namespace code of the desired Groups to return") @QueryParam("namespaceCode") String namespaceCode) {
 
         List<String> groupIds = new ArrayList<String>();
@@ -164,19 +168,15 @@ public class KimGroupRestController {
             throw new BadRequestException("Legal query params are: just principalId, principalId and namespacecode");
         }
 
-        List<IdRefResource> groupRefs = new ArrayList<IdRefResource>();
+        List<Link> groupRefs = new ArrayList<Link>();
         if(null != groupIds) {
              for(String id : groupIds) {
-                IdRefResource idRef = new IdRefResource();
-
-                String location = ServletUriComponentsBuilder.fromCurrentServletMapping().path(RESOURCE_REQUEST_MAPPING + "/{id}").buildAndExpand(id).toUriString();
-                idRef.setHref(location);
-                idRef.setId(id);
-                groupRefs.add(idRef);
+                Link link = ControllerLinkBuilder.linkTo(KimGroupRestController.class).slash(id).withSelfRel();
+                groupRefs.add(link);
             }
         }
 
-        return groupRefs;
+        return new ResponseEntity<Iterable<Link>> (groupRefs, HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -185,7 +185,7 @@ public class KimGroupRestController {
             response = GroupMemberResource.class
     )
     @RequestMapping(value="/{groupId}/members/{memberId}", method = RequestMethod.GET)
-    public List<GroupMemberResource> getGroupMember(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
+    public ResponseEntity<List<GroupMemberResource>> getGroupMember(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
                                       @ApiParam(value = "The member id of the member", required=true) @PathVariable("memberId") String memberId) {
 
         if(StringUtils.isBlank(groupId) || StringUtils.isBlank(memberId))  {
@@ -197,11 +197,11 @@ public class KimGroupRestController {
         List<GroupMemberResource> memberResources = new ArrayList<GroupMemberResource>();
         for(GroupMember member : members) {
             if(memberId.equals(member.getMemberId())) {
-                memberResources.add ( GroupMemberResource.fromGroupMember(member ));
+                memberResources.add ( groupMemberResourceAssembler.toResource(member));
             }
         }
 
-        return memberResources;
+        return new ResponseEntity<List<GroupMemberResource>> (memberResources, HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -210,7 +210,7 @@ public class KimGroupRestController {
             response = Iterable.class
     )
     @RequestMapping(value="/{groupId}/members", method = RequestMethod.GET)
-    public Iterable<GroupMemberResource> getMembersForGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId) {
+    public ResponseEntity<Iterable<GroupMemberResource>> getMembersForGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId) {
         if(StringUtils.isBlank(groupId)) {
             throw new BadRequestException();
         }
@@ -219,16 +219,11 @@ public class KimGroupRestController {
 
         List<GroupMemberResource> memberResources = new ArrayList<GroupMemberResource>();
         for(GroupMember member : members) {
-            GroupMemberResource gmr = new GroupMemberResource();
-            try {
-                BeanUtils.copyProperties(gmr, member);
-            } catch (Exception e) {
-                throw new OperationFailedException(e.getMessage());
-            }
+            GroupMemberResource gmr = groupMemberResourceAssembler.toResource(member);
             memberResources.add(gmr);
         }
 
-        return memberResources;
+        return new ResponseEntity<Iterable<GroupMemberResource>> (memberResources, HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -239,7 +234,7 @@ public class KimGroupRestController {
             response = Iterable.class
     )
     @RequestMapping(value="/{groupId}/member-refs/principal", method = RequestMethod.GET)
-    public Iterable<IdRefResource> getDirectPrincipalMemberRefsForGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
+    public ResponseEntity<Iterable<Link>> getDirectPrincipalMemberRefsForGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
                                                                  @ApiParam(value = "Flag for direct members") @QueryParam("directMembersOnly") boolean directMembersOnly) {
         List<String> memberIds = null;
 
@@ -249,18 +244,15 @@ public class KimGroupRestController {
             memberIds = groupService.getMemberPrincipalIds(groupId);
         }
 
-        List<IdRefResource> memberRefs = new ArrayList<IdRefResource>();
+        List<Link> memberRefs = new ArrayList<Link>();
         if(null != memberIds) {
             for(String id : memberIds) {
-                IdRefResource idRef = new IdRefResource();
-                String location = ServletUriComponentsBuilder.fromCurrentServletMapping().path(RESOURCE_REQUEST_MAPPING + "/{groupId}/members/{memberId}").buildAndExpand(groupId, id).toUriString() ;
-                idRef.setId( id );
-                idRef.setHref(location);
-                memberRefs.add( idRef );
+                Link link = ControllerLinkBuilder.linkTo(KimGroupRestController.class).slash(groupId).slash("members").slash(id).withSelfRel();
+                memberRefs.add( link );
             }
         }
 
-        return memberRefs;
+        return new ResponseEntity<Iterable<Link>> (memberRefs, HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -271,7 +263,7 @@ public class KimGroupRestController {
             response = Iterable.class
     )
     @RequestMapping(value="/{groupId}/member-refs/group", method = RequestMethod.GET)
-    public Iterable<IdRefResource> getGroupMemberRefsForGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
+    public ResponseEntity<Iterable<Link>> getGroupMemberRefsForGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
                                                        @ApiParam(value = "Flag for direct members") @QueryParam("directMembersOnly") boolean directMembersOnly) {
 
         List<String> memberIds = null;
@@ -282,18 +274,15 @@ public class KimGroupRestController {
             memberIds = groupService.getMemberGroupIds(groupId);
         }
 
-        List<IdRefResource> memberRefs = new ArrayList<IdRefResource>();
+        List<Link> memberRefs = new ArrayList<Link>();
         if(null != memberIds) {
             for(String id : memberIds) {
-                IdRefResource idRef = new IdRefResource();
-                String location = ServletUriComponentsBuilder.fromCurrentServletMapping().path(RESOURCE_REQUEST_MAPPING + "/{groupId}/members/{memberId}").buildAndExpand(groupId, id).toUriString() ;
-                idRef.setId( id );
-                idRef.setHref(location);
-                memberRefs.add( idRef );
+                Link link = ControllerLinkBuilder.linkTo(KimGroupRestController.class).slash(groupId).slash("members").slash(id).withSelfRel();
+                memberRefs.add( link );
             }
         }
 
-        return memberRefs;
+        return new ResponseEntity<Iterable<Link>> (memberRefs, HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -304,7 +293,7 @@ public class KimGroupRestController {
     )
     @RequestMapping(value = "/{groupId}/members/principal/{memberId}", method = RequestMethod.PUT)
     @ResponseBody
-    ResponseEntity<String> addPrincipalToGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
+    ResponseEntity<Link> addPrincipalToGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
                                                @ApiParam(value = "The member id of the member", required=true) @PathVariable("memberId") String memberId) {
         if (StringUtils.isBlank(groupId) || StringUtils.isBlank(memberId)) {
             throw new BadRequestException();
@@ -316,12 +305,9 @@ public class KimGroupRestController {
             throw new OperationFailedException("Could not add principal " + memberId + " to group " + groupId);
         }
 
+        Link link = ControllerLinkBuilder.linkTo(KimGroupRestController.class).slash(groupId).slash("members").withSelfRel();
 
-        UriComponents location = ServletUriComponentsBuilder.fromCurrentServletMapping().path(RESOURCE_REQUEST_MAPPING + "/{groupId}/members").buildAndExpand(groupId);
-
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.setLocation(location.toUri());
-        return new ResponseEntity<String>("", responseHeaders, HttpStatus.OK);
+        return new ResponseEntity<Link>(link, HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -332,7 +318,7 @@ public class KimGroupRestController {
     )
     @RequestMapping(value = "/{groupId}/members/group/{memberId}", method = RequestMethod.PUT)
     @ResponseBody
-    ResponseEntity<String> addGroupToGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
+    ResponseEntity<Link> addGroupToGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
                                            @ApiParam(value = "The member id of the member", required=true) @PathVariable("memberId") String memberId) {
         if (StringUtils.isBlank(groupId) || StringUtils.isBlank(memberId)) {
             throw new BadRequestException();
@@ -344,12 +330,9 @@ public class KimGroupRestController {
             throw new OperationFailedException("Could not add group " + memberId + " to group " + groupId);
         }
 
+        Link link = ControllerLinkBuilder.linkTo(KimGroupRestController.class).slash(groupId).slash("members").withSelfRel();
 
-        UriComponents location = ServletUriComponentsBuilder.fromCurrentServletMapping().path(RESOURCE_REQUEST_MAPPING + "/{groupId}/members").buildAndExpand(groupId);
-
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.setLocation(location.toUri());
-        return new ResponseEntity<String>("", responseHeaders, HttpStatus.OK);
+        return new ResponseEntity<Link>(link, HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -360,13 +343,13 @@ public class KimGroupRestController {
     @RequestMapping(value = "/{groupId}/members", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    GroupMemberResource createGroupMember(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
+    ResponseEntity<GroupMemberResource> createGroupMember(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
                                   @ApiParam(value = "The group member to use") @RequestBody GroupMemberResource groupMemberResource) {
         if (StringUtils.isBlank(groupId) || groupMemberResource == null) {
             throw new BadRequestException();
         }
 
-        groupService.createGroupMember( GroupMember.Builder.create(groupMemberResource).build() );
+        groupService.createGroupMember( GroupMemberResource.toGroupMember(groupMemberResource) );
 
         /**
          *  Right now there is bug in groupServiceImpl which compares JodaTime with SQL time using .equals operator.
@@ -389,7 +372,9 @@ public class KimGroupRestController {
             throw new OperationFailedException("Could not find the newly created GroupMember!");
         }
 
-        return GroupMemberResource.fromGroupMember(newMember);
+        GroupMemberResource resource = groupMemberResourceAssembler.toResource(newMember);
+
+        return new ResponseEntity<GroupMemberResource>(resource, HttpStatus.CREATED);
     }
 
     @ApiOperation(
@@ -404,24 +389,24 @@ public class KimGroupRestController {
             throw new BadRequestException();
         }
 
-        GroupMember member =  groupService.updateGroupMember( GroupMember.Builder.create(groupMemberResource).build() );
+        GroupMember member =  groupService.updateGroupMember( GroupMemberResource.toGroupMember(groupMemberResource) );
 
         return GroupMemberResource.fromGroupMember(member);
 
     }
 
     @RequestMapping(value = "/{groupId}/members/{memberId}", method = RequestMethod.DELETE)
-    public ResponseEntity<String> removeMemberFromGroup(@PathVariable("groupId") String groupId, @PathVariable("memberId") String memberId) {
+    public ResponseEntity<Link> removeMemberFromGroup(@PathVariable("groupId") String groupId, @PathVariable("memberId") String memberId) {
         if (StringUtils.isBlank(groupId) || StringUtils.isBlank(memberId)) {
             throw new BadRequestException();
         }
 
-        List<GroupMemberResource> members = getGroupMember(groupId, memberId);
-        if(members == null || members.size() > 0) {
+        ResponseEntity<List<GroupMemberResource>> members = getGroupMember(groupId, memberId);
+        if(members.getBody() == null || members.getBody().size() > 0) {
             throw new NotFoundException("No members found with member Id: " + memberId + " for group: " + groupId);
         }
 
-        GroupMemberResource member = members.get(0);
+        GroupMemberResource member = members.getBody().get(0);
 
         boolean status = false;
 
@@ -435,26 +420,21 @@ public class KimGroupRestController {
             throw new OperationFailedException("Could not remove member " + memberId + " from group " + groupId);
         }
 
-        UriComponents location = ServletUriComponentsBuilder.fromCurrentServletMapping().path(RESOURCE_REQUEST_MAPPING + "/{groupId}/members").buildAndExpand(groupId);
-
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.setLocation(location.toUri());
-        return new ResponseEntity<String>("", responseHeaders, HttpStatus.OK);
+        Link link = ControllerLinkBuilder.linkTo(KimGroupRestController.class).slash(groupId).slash("members").withSelfRel();
+        return new ResponseEntity<Link>(link, HttpStatus.OK);
     }
 
 
     @RequestMapping(value = "/{groupId}/members", method = RequestMethod.DELETE)
-    public ResponseEntity<String> removeAllMemberFromGroup(@PathVariable("groupId") String groupId ) {
+    public ResponseEntity<Link> removeAllMemberFromGroup(@PathVariable("groupId") String groupId ) {
         if (StringUtils.isBlank(groupId)) {
             throw new BadRequestException();
         }
 
         groupService.removeAllMembers(groupId);
 
-        UriComponents location = ServletUriComponentsBuilder.fromCurrentServletMapping().path(RESOURCE_REQUEST_MAPPING + "/{groupId}/members").buildAndExpand(groupId);
+        Link link = ControllerLinkBuilder.linkTo(KimGroupRestController.class).slash(groupId).slash("members").withSelfRel();
 
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.setLocation(location.toUri());
-        return new ResponseEntity<String>("", responseHeaders, HttpStatus.OK);
+        return new ResponseEntity<Link>(link, HttpStatus.OK);
     }
 }

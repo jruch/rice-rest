@@ -1,9 +1,11 @@
 package org.kuali.rice.rest.api.kim;
 
-import org.apache.commons.beanutils.BeanUtils;
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.kuali.rice.kim.api.group.Group;
 import org.kuali.rice.kim.api.group.GroupContract;
 import org.kuali.rice.rest.exception.OperationFailedException;
+import org.springframework.beans.BeanUtils;
 import org.springframework.hateoas.ResourceSupport;
 
 import java.util.Map;
@@ -11,9 +13,10 @@ import java.util.Map;
 /**
  * Resource for Group
  */
-public class GroupResource implements GroupContract {
+@ApiModel(value = "KIM Group Resource")
+public class GroupResource extends ResourceSupport {
 
-    private String id;
+    private String groupId;
 
     private String namespaceCode;
 
@@ -31,53 +34,53 @@ public class GroupResource implements GroupContract {
 
     private boolean active;
 
-    @Override
+    @ApiModelProperty(value = "Namespace code")
     public String getNamespaceCode() {
         return namespaceCode;
     }
 
-    @Override
+    @ApiModelProperty(value = "Name of the croup")
     public String getName() {
         return name;
     }
 
-    @Override
+    @ApiModelProperty(value = "Group description")
     public String getDescription() {
         return description;
     }
 
-    @Override
+    @ApiModelProperty(value = "Group's Kim Type")
     public String getKimTypeId() {
         return kimTypeId;
     }
 
-    @Override
+    @ApiModelProperty(value = "Additional group attributes")
     public Map<String, String> getAttributes() {
         return attributes;
     }
 
-    @Override
+    @ApiModelProperty(value = "group system database")
     public String getObjectId() {
         return objectId;
     }
 
-    @Override
-    public String getId() {
-        return id;
+    @ApiModelProperty(value = "Group Id", required=true)
+    public String getGroupId() {
+        return groupId;
     }
 
-    @Override
+    @ApiModelProperty(value = "Indicates if group is active")
     public boolean isActive() {
         return active;
     }
 
-    @Override
+    @ApiModelProperty(value = "System property indicating database version")
     public Long getVersionNumber() {
         return versionNumber;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 
     public void setNamespaceCode(String namespaceCode) {
@@ -115,12 +118,25 @@ public class GroupResource implements GroupContract {
     public static GroupResource fromGroup(Group group) {
         GroupResource grp = new GroupResource();
         try {
-            BeanUtils.copyProperties(grp, group);
+            BeanUtils.copyProperties(group, grp, new String[]{"id"});
+            grp.setGroupId(group.getId());
         } catch (Exception e) {
             throw new OperationFailedException(e.getMessage());
         }
 
         return grp;
+    }
+
+    public static Group toGroup(GroupResource groupResource) {
+        Group.Builder grp = Group.Builder.create(groupResource.getNamespaceCode(), groupResource.getName(), groupResource.getKimTypeId());
+        try {
+            BeanUtils.copyProperties(groupResource, grp, new String[]{"id", "groupId"});
+            grp.setId(groupResource.getGroupId());
+        } catch (Exception e) {
+            throw new OperationFailedException(e.getMessage());
+        }
+
+        return grp.build();
     }
 }
 

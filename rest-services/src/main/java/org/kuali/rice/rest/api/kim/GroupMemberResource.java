@@ -1,21 +1,28 @@
 package org.kuali.rice.rest.api.kim;
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
-import org.apache.commons.beanutils.BeanUtils;
+import com.wordnik.swagger.annotations.ApiModel;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.joda.time.DateTime;
 import org.kuali.rice.core.api.membership.MemberType;
 import org.kuali.rice.kim.api.group.GroupMember;
 import org.kuali.rice.kim.api.group.GroupMemberContract;
 import org.kuali.rice.rest.exception.OperationFailedException;
+import org.springframework.beans.BeanUtils;
+import org.springframework.hateoas.ResourceSupport;
 
 /**
  * Resource for GroupMember
  */
-public class GroupMemberResource  implements  GroupMemberContract{
+@ApiModel(value = "KIM Group Member Resource")
+public class GroupMemberResource extends ResourceSupport {
 
-    private String id;
+
+    @JsonProperty("id")
+    private String recId;
 
     private String groupId;
 
@@ -34,22 +41,16 @@ public class GroupMemberResource  implements  GroupMemberContract{
     private boolean active;
 
 
+    @ApiModelProperty(value = "Type code")
     public String getTypeCode() {
         return typeCode;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     public String getGroupId() {
         return groupId;
     }
 
+    @ApiModelProperty(value = "Member's parent group")
     public void setGroupId(String groupId) {
         this.groupId = groupId;
     }
@@ -58,7 +59,6 @@ public class GroupMemberResource  implements  GroupMemberContract{
         return memberId;
     }
 
-    @Override
     public MemberType getType() {
         return MemberType.fromCode( typeCode );
     }
@@ -79,6 +79,7 @@ public class GroupMemberResource  implements  GroupMemberContract{
         this.activeFromDate = activeFromDate;
     }
 
+    @ApiModelProperty(value = "Active from date")
     public DateTime getActiveToDate() {
         return activeToDate;
     }
@@ -87,6 +88,7 @@ public class GroupMemberResource  implements  GroupMemberContract{
         this.activeToDate = activeToDate;
     }
 
+    @ApiModelProperty(value = "System property indicating database version")
     public Long getVersionNumber() {
         return versionNumber;
     }
@@ -95,6 +97,7 @@ public class GroupMemberResource  implements  GroupMemberContract{
         this.versionNumber = versionNumber;
     }
 
+    @ApiModelProperty(value = "System generated database Id")
     public String getObjectId() {
         return objectId;
     }
@@ -103,7 +106,7 @@ public class GroupMemberResource  implements  GroupMemberContract{
         this.objectId = objectId;
     }
 
-    @Override
+    @ApiModelProperty(value = "Indicates if the member is active")
     public boolean isActive() {
         return active;
     }
@@ -112,28 +115,43 @@ public class GroupMemberResource  implements  GroupMemberContract{
         this.active = active;
     }
 
-    @Override
-    /**
-     * Rest does not have a concept of POJO with business logic.
-     * Added here just to implement GroupContract interface
-     */
-    public boolean isActive(DateTime dateTime) {
-        throw new UnsupportedOperationException("Not supported in Rest");
-    }
-
     public void setType(MemberType type) {
         typeCode = type.getCode();
+    }
+
+    @ApiModelProperty(value = "System Id of group member")
+    public String getRecId() {
+        return recId;
+    }
+
+    public void setRecId(String recId) {
+        this.recId = recId;
     }
 
     public static GroupMemberResource fromGroupMember(GroupMember member) {
         GroupMemberResource gmr = new GroupMemberResource();
         try {
-            BeanUtils.copyProperties(gmr, member);
+            BeanUtils.copyProperties(member, gmr, new String[] {"id"});
             gmr.setActive( member.isActive() );
+            gmr.setRecId(member.getId());
         } catch (Exception e) {
             throw new OperationFailedException(e.getMessage());
         }
 
         return gmr;
+    }
+
+    public static GroupMember toGroupMember(GroupMemberResource memberResource) {
+        GroupMember.Builder mbr = GroupMember.Builder.create(memberResource.getGroupId(), memberResource.getMemberId(), memberResource.getType());
+
+        try {
+            BeanUtils.copyProperties(memberResource, mbr, new String[] {"id", "recId"});
+            mbr.setId(memberResource.getRecId());
+        } catch (Exception e) {
+            throw new OperationFailedException(e.getMessage());
+        }
+
+
+        return mbr.build();
     }
 }
