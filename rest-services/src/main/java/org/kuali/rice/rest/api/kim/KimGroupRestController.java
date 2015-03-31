@@ -45,11 +45,9 @@ import static org.kuali.rice.core.api.criteria.PredicateFactory.*;
  * @author Kuali Rice Team (rice.collab@kuali.org)
  */
 @Controller
-@RequestMapping(value = "/api/v1/kimgroups", produces = MediaType.APPLICATION_JSON)
+@RequestMapping(value = RiceRestConstants.API_URL + "/kimgroups", produces = MediaType.APPLICATION_JSON)
 @Api(value = "/kimgroups", description = "Operations on kimgroups")
 public class KimGroupRestController {
-
-    private static final String RESOURCE_REQUEST_MAPPING = "/api/v1/kimgroups";
 
     private GroupService groupService = KimApiServiceLocator.getGroupService();
 

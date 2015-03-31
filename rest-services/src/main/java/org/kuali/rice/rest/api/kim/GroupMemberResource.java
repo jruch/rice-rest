@@ -1,6 +1,5 @@
 package org.kuali.rice.rest.api.kim;
 
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
@@ -19,7 +18,6 @@ import org.springframework.hateoas.ResourceSupport;
  */
 @ApiModel(value = "KIM Group Member Resource")
 public class GroupMemberResource extends ResourceSupport {
-
 
     @JsonProperty("id")
     private String recId;
@@ -40,7 +38,6 @@ public class GroupMemberResource extends ResourceSupport {
 
     private boolean active;
 
-
     @ApiModelProperty(value = "Type code", required = true)
     public String getTypeCode() {
         return typeCode;
@@ -56,6 +53,7 @@ public class GroupMemberResource extends ResourceSupport {
         return memberId;
     }
 
+    @ApiModelProperty(value = "Member type based on typeCode")
     public MemberType getType() {
         return MemberType.fromCode(typeCode);
     }
@@ -84,7 +82,6 @@ public class GroupMemberResource extends ResourceSupport {
     public String getRecId() {
         return recId;
     }
-
 
     public void setGroupId(String groupId) {
         this.groupId = groupId;
