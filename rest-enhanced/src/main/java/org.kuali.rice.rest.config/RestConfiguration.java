@@ -59,11 +59,11 @@ public class RestConfiguration {
 
     private List<AuthorizationType> authType() {
         List<AuthorizationScope> scopes = new ArrayList<AuthorizationScope>();
-        scopes.add(new AuthorizationScope("access", "Read/write groups and members"));
+        scopes.add(new AuthorizationScope("access", "Access rice rest data"));
 
         List<GrantType> grantTypes = new ArrayList<GrantType>();
 
-        ImplicitGrant implicitGrant = new ImplicitGrant(new LoginEndpoint("http://localhost:8080/oauth/token"),
+        ImplicitGrant implicitGrant = new ImplicitGrant(new LoginEndpoint("/rest/oauth/token"),
                 "access_token");
 
         grantTypes.add(implicitGrant);

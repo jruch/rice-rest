@@ -2,9 +2,6 @@ package org.kuali.rice.rest.api.document;
 
 import com.wordnik.swagger.annotations.*;
 import org.apache.commons.lang.StringUtils;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 import org.kuali.rice.kew.api.KewApiServiceLocator;
 import org.kuali.rice.kew.api.document.Document;
 import org.kuali.rice.kew.api.document.search.DocumentSearchCriteria;
@@ -50,13 +47,40 @@ public class DocumentSearchRestController {
             httpMethod = "GET",
             value = "List documents for principalId using paging",
             notes = "List documents for principalId using paging and limiting results.  " +
-                    "Filters can also be applied (and can use wildcards/range).",
-            response = RicePagedResources.class
+                    "Filters can also be applied (and can use wildcards/range)." + "" +
+                    "<br/>Filters that can be applied:" +
+                    "<br/>documentId" +
+                    "<br/>title" +
+                    "<br/>applicationDocumentId" +
+                    "<br/>applicationDocumentStatus" +
+                    "<br/>initiatorPrincipalName" +
+                    "<br/>initiatorPrincipalId" +
+                    "<br/>viewerPrincipalName" +
+                    "<br/>viewerPrincipalId" +
+                    "<br/>groupViewerId" +
+                    "<br/>groupViewerName" +
+                    "<br/>approverPrincipalName" +
+                    "<br/>approverPrincipalId" +
+                    "<br/>routeNodeName" +
+                    "<br/>documentTypeName" +
+                    "<br/> Date filters below support greater than, less than, and equal symbols for ranges (ie, &gt;=03/10/2010) : " +
+                    "<br/>dateCreated (and explicit dateCreatedFrom and dateCreatedTo variations)"  +
+                    "<br/>dateLastModified (and explicit dateLastModifiedFrom and dateLastModifiedTo variations)" +
+                    "<br/>dateApproved (and explicit dateApprovedFrom and dateApprovedTo variations)" +
+                    "<br/>dateFinalized (and explicit dateFinalizedFrom and dateFinalizedTo variations)"  +
+                    "<br/>dateApplicationDocumentStatusChanged (and explicit dateApplicationDocumentStatusChangedFrom and dateApplicationDocumentStatusChangedTo variations)",
+            response = RicePagedResources.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read documents")
+                    }
+            )}
     )
     public ResponseEntity<RicePagedResources<DocumentResource>> getDocuments(@ApiParam(value = "Principal Id of user to retrieve documents for") @RequestParam(value = "principalId", required = false) String principalId,
                                                                              @ApiParam(value = "Starting index of results to fetch") @RequestParam(value = "startIndex", defaultValue = "0", required = false) int startIndex,
                                                                              @ApiParam(value = "Max limit of items returned") @RequestParam(value = "limit", defaultValue = RiceRestConstants.DOCUMENT_SEARCH_DEFAULT_LIMIT, required = false) int limit,
                                                                              @ApiParam(value = "Filters to apply in the format: filter=&lt;name&gt;::&lt;wildcardedValue&gt;|&lt;name&gt;::&lt;wildcardedValue&gt;") @RequestParam(value = "filter", required = false) String filter) {
+
         Map<String, String> criteria = RiceRestUtils.translateFilterToMap(filter);
 
         if (!criteria.containsKey("isAdvancedSearch")) {
@@ -97,18 +121,37 @@ public class DocumentSearchRestController {
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
     @ApiOperation(
             value = "Get a document by id",
-            notes = "Get a document by id"
+            notes = "Get a document by id",
+            response = DocumentResource.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read documents")
+                    }
+            )}
     )
     @ApiResponses({@ApiResponse(code = 404, response = String.class, message = "Not found")})
-    public ResponseEntity<DocumentResource> getDocumentById(@ApiParam(value = "Id of the document", required = true) @PathVariable String id) {
+    public ResponseEntity<DocumentResource> getDocumentById(@ApiParam(value = "Principal Id of user to retrieve documents for") @RequestParam(value = "principalId", required = false) String principalId,
+                                                            @ApiParam(value = "Id of the document", required = true) @PathVariable String id) {
+        DocumentResource documentResource = null;
+        if (StringUtils.isNotBlank(principalId)) {
+            // go through getDocuments for security when principal is supplied
+            ResponseEntity<RicePagedResources<DocumentResource>> results = getDocuments(principalId, 0, 1, "documentId::" + id);
+            if (!results.getBody().getContent().isEmpty()) {
+                documentResource = results.getBody().getContent().iterator().next();
+            }
+        } else {
+            Document document = KewApiServiceLocator.getWorkflowDocumentService().getDocument(id);
+            if (document != null) {
+                documentResource = documentResourceAssembler.toResource(document);
+            }
+        }
 
-        Document document = KewApiServiceLocator.getWorkflowDocumentService().getDocument(id);
 
-        if (document == null) {
+        if (documentResource == null) {
             throw new NotFoundException();
         }
 
-        return new ResponseEntity<DocumentResource>(documentResourceAssembler.toResource(document), HttpStatus.OK);
+        return new ResponseEntity<DocumentResource>(documentResource, HttpStatus.OK);
     }
 
 

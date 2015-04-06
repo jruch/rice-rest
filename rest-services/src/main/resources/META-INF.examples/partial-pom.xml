@@ -1,0 +1,85 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <dependencies>
+        <dependency>
+            <groupId>org.kuali.rice</groupId>
+            <artifactId>rest-services</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.kuali.org</groupId>
+                    <artifactId>rice-impl</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- for advanced swagger documentation support only, requires Spring 4.0+ -->
+        <dependency>
+            <groupId>org.kuali.rice</groupId>
+            <artifactId>rest-enhanced</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- for advanced swagger documentation support only, requires Spring 4.0+ -->
+        <dependency>
+            <groupId>org.kuali.rice</groupId>
+            <artifactId>rest-web</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <type>war</type>
+        </dependency>
+
+    </dependencies>
+
+    <!-- additional plugin config advanced swagger documentation support only, requires Spring 4.0+ -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.mortbay.jetty</groupId>
+                <artifactId>jetty-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>tomcat-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <overlays>
+
+                        <overlay>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>rice-web</artifactId>
+                            <includes>
+                                <include>${war.overlay.pattern.1}</include>
+                            </includes>
+                            <filtered>true</filtered>
+                        </overlay>
+
+                        <overlay>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>rice-web</artifactId>
+                            <excludes>
+                                <exclude>${war.overlay.exclude.2}</exclude>
+                            </excludes>
+                            <filtered>false</filtered>
+                        </overlay>
+
+                        <!-- overlay for advanced swagger documentation support only, requires Spring 4.0+ -->
+                        <overlay>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>rest-web</artifactId>
+                            <excludes>
+                                <exclude>**/web.xml</exclude>
+                                <exclude>META-INF</exclude>
+                            </excludes>
+                            <filtered>false</filtered>
+                        </overlay>
+
+                    </overlays>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

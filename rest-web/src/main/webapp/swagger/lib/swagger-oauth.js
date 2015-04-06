@@ -24,12 +24,8 @@ function handleLogin() {
     popupDialog = $(
       [
         '<div class="api-popup-dialog">',
-        '<div class="api-popup-title">Select OAuth2.0 Scopes</div>',
+        '<div class="api-popup-title">Login to Swagger</div>',
         '<div class="api-popup-content">',
-          '<p>Scopes are used to grant an application different levels of access to data on behalf of the end user. Each API may declare one or more scopes.',
-            '<a href="#">Learn how to use</a>',
-          '</p>',
-          '<p><strong>' + appName + '</strong> API requires the following scopes. Select which ones you want to grant to Swagger UI.</p>',
           '<ul class="api-popup-scopes">',
           '</ul>',
           '<p class="error-msg"></p>',
@@ -95,8 +91,10 @@ function handleLogin() {
 
       window.enabledScopes = scopes;
 
+      var url = window.swaggerUi.options.url.replace("api-docs", "");
+
       jQuery.ajax({
-              url: "/oauth/token",
+              url: url + "oauth/token",
               success: function (data) {
                   onOAuthComplete(data);
               },
@@ -104,15 +102,15 @@ function handleLogin() {
                 username: jQuery("[name='username']").val(),
                 password: jQuery("[name='password']").val(),
                 grant_type: "password",
-                scope: scopes.join(" "),
-                client_secret: "123456",
-                client_id: "clientapp"
+                scope: "access",
+                client_secret: "secretSwagger",
+                client_id: "swaggerClient"
 
               },
               dataType: "json",
               type: "POST",
-              username: "clientapp",
-              password: "123456"
+              username: "swaggerClient",
+              password: "secretSwagger"
           }
 
     );
