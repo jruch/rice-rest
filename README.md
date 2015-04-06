@@ -21,7 +21,31 @@ Include it in a project which uses rice by using the following Maven dependency:
 
 Include a rest servlet xml with the following settings:
 ```xml
-  <mvc:annotation-driven />
+    <bean id="objectMapper"
+          class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean"
+          p:indentOutput="true" p:simpleDateFormat="yyyy-MM-dd'T'HH:mm:ssZ">
+    </bean>
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean"
+            p:targetObject-ref="objectMapper" p:targetMethod="registerModule">
+      <property name="arguments">
+        <list>
+          <bean class="com.fasterxml.jackson.datatype.joda.JodaModule"/>
+        </list>
+      </property>
+    </bean>
+
+    <mvc:annotation-driven>
+      <mvc:message-converters>
+        <bean class="org.springframework.http.converter.StringHttpMessageConverter"/>
+        <bean
+                class="org.springframework.http.converter.ResourceHttpMessageConverter"/>
+
+        <bean
+                class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+          <property name="objectMapper" ref="objectMapper"/>
+        </bean>
+      </mvc:message-converters>
+    <mvc:annotation-driven />
   <context:component-scan base-package="org.kuali.rice.rest"/>
 ```
 

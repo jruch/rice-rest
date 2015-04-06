@@ -40,7 +40,7 @@ public class RestConfiguration {
         return new SwaggerSpringMvcPlugin(this.springSwaggerConfig).authorizationTypes(authType())
                 .pathProvider(new CustomSwaggerPathProvider(servletContext))
                 .apiInfo(apiInfo())
-                .includePatterns(".*document.*")
+                .includePatterns(".*api.*")
                 .useDefaultResponseMessages(false);
     }
 
