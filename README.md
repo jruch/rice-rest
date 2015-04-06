@@ -3,6 +3,8 @@
 ##Installation
 A collection of rest services for use with Kuali Rice.
 
+See the META-INF/examples directory for setup code and config properties.
+
 Include it in a project which uses rice by using the following Maven dependency:
 
 ```xml
@@ -19,34 +21,38 @@ Include it in a project which uses rice by using the following Maven dependency:
     </dependency>
 ```
 
-Include a rest servlet xml with the following settings:
+Include a rest servlet xml (see rest-servlet.xml file in META-INF/examples) with the following settings:
 ```xml
     <bean id="objectMapper"
           class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean"
           p:indentOutput="true" p:simpleDateFormat="yyyy-MM-dd'T'HH:mm:ssZ">
     </bean>
+
     <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean"
-            p:targetObject-ref="objectMapper" p:targetMethod="registerModule">
-      <property name="arguments">
-        <list>
-          <bean class="com.fasterxml.jackson.datatype.joda.JodaModule"/>
-        </list>
-      </property>
+          p:targetObject-ref="objectMapper" p:targetMethod="registerModule">
+        <property name="arguments">
+            <list>
+                <bean class="com.fasterxml.jackson.datatype.joda.JodaModule"/>
+            </list>
+        </property>
     </bean>
 
     <mvc:annotation-driven>
-      <mvc:message-converters>
-        <bean class="org.springframework.http.converter.StringHttpMessageConverter"/>
-        <bean
-                class="org.springframework.http.converter.ResourceHttpMessageConverter"/>
+        <mvc:argument-resolvers>
+            <bean class="org.springframework.security.web.bind.support.AuthenticationPrincipalArgumentResolver"/>
+        </mvc:argument-resolvers>
 
-        <bean
-                class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
-          <property name="objectMapper" ref="objectMapper"/>
-        </bean>
-      </mvc:message-converters>
-    <mvc:annotation-driven />
-  <context:component-scan base-package="org.kuali.rice.rest"/>
+        <mvc:message-converters>
+            <bean class="org.springframework.http.converter.StringHttpMessageConverter"/>
+            <bean class="org.springframework.http.converter.ResourceHttpMessageConverter"/>
+            <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+                <property name="objectMapper" ref="objectMapper"/>
+            </bean>
+        </mvc:message-converters>
+    </mvc:annotation-driven>
+    <context:component-scan base-package="org.kuali.rice.rest"/>
+
+    <import resource="classpath:META-INF/spring/oauth/oauth2-configuration.xml"/>
 ```
 
 and servlet definitions/mapping in web.xml for your app:
@@ -63,6 +69,50 @@ and servlet definitions/mapping in web.xml for your app:
     <servlet-name>rest</servlet-name>
     <url-pattern>/rest/*</url-pattern>
   </servlet-mapping>
+```
+
+and the following filters for the oauth support:
+
+```xml
+    <filter>
+        <filter-name>springSecurityFilterChain</filter-name>
+        <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+        <init-param>
+            <param-name>contextAttribute</param-name>
+            <param-value>org.springframework.web.servlet.FrameworkServlet.CONTEXT.rest</param-value>
+        </init-param>
+    </filter>
+```
+
+```xml
+    <filter-mapping>
+        <filter-name>springSecurityFilterChain</filter-name>
+        <url-pattern>/rest/*</url-pattern>
+    </filter-mapping>
+```
+
+Oauth configuration that will be used by the rest services can be found at META-INF/spring/oauth/oauth2-configuration.xml.
+
+##Oauth token
+To obtain a token a post request must be made to this url with properties below posted:
+```
+http://localhost:8080/kr-dev/rest/oauth/token
+```
+
+with these posted properties:
+
+```
+grant_type:client_credentials
+client_secret:<your_secret>
+client_id:<your_client>
+scope:access
+```
+
+This should be done by your server code to keep client secrets safe.  The token retrieved must then be used by
+future requests (or re-requested to be used).  Using the token is done by setting *Authorization* header property
+to:
+```
+bearer <token_value>
 ```
 
 ##Document Search service
@@ -215,7 +265,8 @@ And the War overlay:
      </overlay>
 ```
 
-Swagger documentation (on your server) can be accessed at:
+Swagger documentation (on your server) can be accessed at (a swagger user name and password from your config
+properties must be used).  Click the oauth switch on method descriptions to verify access:
 ```
 http://<hostname/projectpath>/swagger/riceRestApi.html
 ```

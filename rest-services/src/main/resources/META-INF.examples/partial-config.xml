@@ -1,0 +1,15 @@
+<config>
+
+    <!-- Change these!!! Treat this id and secret as you would a db username/password -->
+    <param name="oauth.client.id">rice</param>
+    <param name="oauth.client.secret">secret123</param>
+
+    <!-- DO NOT CHANGE, unless changing swagger html/js implementation and changing there -->
+    <param name="oauth.swagger.client.id">swaggerClient</param>
+    <param name="oauth.swagger.client.secret">secretSwagger</param>
+
+    <!-- Change these!!! Treat this username and password as you would a db username/password -->
+    <param name="oauth.swagger.user">swaggerAdmin</param>
+    <param name="oauth.swagger.pass">$4feswagger</param>
+
+</config>

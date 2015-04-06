@@ -1,0 +1,123 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+       xmlns:sec="http://www.springframework.org/schema/security"
+
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                      http://www.springframework.org/schema/beans/spring-beans.xsd
+					  http://www.springframework.org/schema/security/oauth2
+					  http://www.springframework.org/schema/security/spring-security-oauth2.xsd
+					  http://www.springframework.org/schema/security
+					  http://www.springframework.org/schema/security/spring-security.xsd">
+
+<!--    <sec:debug/>-->
+    <!-- Server configuration -->
+    <oauth:authorization-server
+            client-details-service-ref="clientDetailsService"
+            token-services-ref="tokenServices">
+        <oauth:authorization-code/>
+        <oauth:implicit/>
+        <oauth:refresh-token/>
+        <oauth:client-credentials/>
+        <oauth:password/>
+    </oauth:authorization-server>
+
+    <bean id="loggerListener"
+          class="org.springframework.security.authentication.event.LoggerListener"/>
+
+
+    <!-- Services for clients -->
+    <sec:authentication-manager id="clientAuthenticationManager">
+        <sec:authentication-provider
+                user-service-ref="clientDetailsUserService"/>
+    </sec:authentication-manager>
+
+
+
+    <bean id="clientDetailsUserService"
+          class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
+        <constructor-arg ref="clientDetailsService"/>
+    </bean>
+
+    <!-- service for resolving our users. -->
+    <authentication-manager alias="authenticationManager"
+                            xmlns="http://www.springframework.org/schema/security">
+        <authentication-provider user-service-ref="userService"/>
+    </authentication-manager>
+    <bean id="userService" class="org.kuali.rice.rest.config.SwaggerUserDetailsService"/>
+
+
+    <!-- Managing Tokens -->
+    <bean id="tokenStore"
+          class="org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore">
+    </bean>
+
+
+    <!-- Token Approval Handler -->
+    <bean id="tokenServices" class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">
+        <property name="tokenStore" ref="tokenStore"/>
+        <property name="supportRefreshToken" value="true"/>
+        <!-- clientDetailsService is defined elsewhere -->
+        <property name="clientDetailsService" ref="clientDetailsService"/>
+    </bean>
+
+    <!-- Resource server -->
+    <oauth:resource-server id="resourceServerFilter" token-services-ref="tokenServices"
+                           resource-id="rice-rest"/>
+
+    <http pattern="/rest/oauth/token" create-session="stateless"
+          authentication-manager-ref="clientAuthenticationManager"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/rest/oauth/token" access="IS_AUTHENTICATED_FULLY"/>
+        <anonymous enabled="false"/>
+        <http-basic entry-point-ref="clientAuthenticationEntryPoint"/>
+        <custom-filter ref="clientCredentialsTokenEndpointFilter"
+                       before="BASIC_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
+    </http>
+
+<!--    <http pattern="/rest/oauth/authorize" access-denied-page=""
+          disable-url-rewriting="true" xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/rest/oauth/authorize" access="IS_AUTHENTICATED_FULLY"/>
+        <form-login authentication-failure-url="/login.do?authentication_error=true"
+                    default-target-url="" login-page=""
+                    login-processing-url=""/>
+        <http-basic/>
+        <anonymous/>
+    </http>-->
+
+    <http pattern="/rest/api/**" create-session="stateless"
+          entry-point-ref="clientAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security"
+          access-decision-manager-ref="accessDecisionManager">
+        <intercept-url pattern="/rest/api/**" access="ROLE_USER"/>
+        <custom-filter ref="resourceServerFilter" before="PRE_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
+    </http>
+
+
+    <bean id="clientCredentialsTokenEndpointFilter"
+          class="org.springframework.security.oauth2.provider.client.ClientCredentialsTokenEndpointFilter">
+        <property name="authenticationManager" ref="clientAuthenticationManager"/>
+        <constructor-arg type="java.lang.String" value="/rest/oauth/token"/>
+    </bean>
+
+
+    <bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased"
+          xmlns="http://www.springframework.org/schema/beans">
+        <constructor-arg>
+            <list>
+                <bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter"/>
+                <bean class="org.springframework.security.access.vote.RoleVoter"/>
+                <bean class="org.springframework.security.access.vote.AuthenticatedVoter"/>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="clientAuthenticationEntryPoint"
+          class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+        <property name="realmName" value="rice-rest"/>
+    </bean>
+
+    <bean id="oauthAccessDeniedHandler"
+          class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler"/>
+</beans>
