@@ -492,7 +492,7 @@ public class KimGroupRestController {
         }
 
         ResponseEntity<List<GroupMemberResource>> members = getGroupMember(groupId, memberId);
-        if (members.getBody() == null || members.getBody().size() > 0) {
+        if (members.getBody() == null || members.getBody().size() == 0) {
             throw new NotFoundException("No members found with member Id: " + memberId + " for group: " + groupId);
         }
 
@@ -553,7 +553,7 @@ public class KimGroupRestController {
     @ResponseBody
     ResponseEntity<RicePagedResources<GroupResource>> findGroups(@ApiParam(value = "Starting index of results to fetch") @RequestParam(value = "startIndex", defaultValue = "0", required = false) int startIndex,
                                                                  @ApiParam(value = "Max limit of items returned") @RequestParam(value = "limit", defaultValue = RiceRestConstants.MAX_RESULTS, required = false) int limit,
-                                                                 @ApiParam(value = "Filters to apply in the format: filter=&lt;name&gt;::&lt;wildcardedValue&gt;|&lt;name&gt;::&lt;wildcardedValue&gt;") @RequestParam(value = "filter", required = false) String filter) {
+                                                                 @ApiParam(value = "Filters to apply in the format: filter=&lt;name&gt;::&lt;wildcardedValue&gt;|&lt;name&gt;::&lt;wildcardedValue&gt;") @RequestParam(value = "filter", required = true) String filter) {
 
         Map<String, String> criteria = RiceRestUtils.translateFilterToMap(filter);
         QueryByCriteria queryByCriteria = null;
@@ -625,6 +625,16 @@ public class KimGroupRestController {
             queryParams.put("filter", filter);
         }
 
+        if (startIndex >= groups.size()) {
+            groups = new ArrayList<Group>();
+        }
+
+        int endIndex = startIndex + limit;
+        if (endIndex > groups.size()) {
+            endIndex = groups.size();
+        }
+
+        groups = groups.subList(startIndex, endIndex);
 
         RicePagedResources<GroupResource> result = new RicePagedResources<GroupResource>(startIndex,
                 limit, groupResourceAssembler.toResources(groups), queryParams, 0);
@@ -647,7 +657,7 @@ public class KimGroupRestController {
     @RequestMapping(value = "/search/members", method = RequestMethod.GET)
     public ResponseEntity<RicePagedResources<GroupMemberResource>> findGroupMembers(@ApiParam(value = "Starting index of results to fetch") @RequestParam(value = "startIndex", defaultValue = "0", required = false) int startIndex,
                                                                                     @ApiParam(value = "Max limit of items returned") @RequestParam(value = "limit", defaultValue = RiceRestConstants.MAX_RESULTS, required = false) int limit,
-                                                                                    @ApiParam(value = "Filters to apply in the format: filter=&lt;name&gt;::&lt;wildcardedValue&gt;|&lt;name&gt;::&lt;wildcardedValue&gt;") @RequestParam(value = "filter", required = false) String filter) {
+                                                                                    @ApiParam(value = "Filters to apply in the format: filter=&lt;name&gt;::&lt;wildcardedValue&gt;|&lt;name&gt;::&lt;wildcardedValue&gt;") @RequestParam(value = "filter", required = true) String filter) {
 
         List<Predicate> predicates = new ArrayList<Predicate>();
         QueryByCriteria queryByCriteria = null;
@@ -688,6 +698,16 @@ public class KimGroupRestController {
             queryParams.put("filter", filter);
         }
 
+        if (startIndex >= groupMembers.size()) {
+            groupMembers = new ArrayList<GroupMember>();
+        }
+
+        int endIndex = startIndex + limit;
+        if (endIndex > groupMembers.size()) {
+            endIndex = groupMembers.size();
+        }
+
+        groupMembers = groupMembers.subList(startIndex, endIndex);
 
         RicePagedResources<GroupMemberResource> result = new RicePagedResources<GroupMemberResource>(startIndex,
                 limit, groupMemberResourceAssembler.toResources(groupMembers), queryParams, 0);

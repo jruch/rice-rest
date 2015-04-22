@@ -271,7 +271,14 @@ properties must be used).  Click the oauth switch on method descriptions to veri
 http://<hostname/projectpath>/swagger/riceRestApi.html
 ```
 
+##Running tests
 
+To run the tests, the RestSuiteTestData.sql file must be applied to the rice db you are testing with.  This file can
+be found at rest-services/resources/sql/RestSuiteTestData.sql.
+
+The tests can be found at in the org.kuali.rice.rest.test package in the rest-services modules.  These tests can only
+be invoked manually and the test require that a Rice server using a the rest-services module to be currently running.
+You must also modify the values in the TestConstants to match your own server's values to invoke these tests correctly.
 
 
 
