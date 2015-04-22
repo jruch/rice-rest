@@ -1,9 +1,6 @@
 package org.kuali.rice.rest.api.kim;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import org.apache.commons.beanutils.BeanUtils;
+import com.wordnik.swagger.annotations.*;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.kuali.rice.core.api.criteria.Predicate;
@@ -24,13 +21,10 @@ import org.kuali.rice.rest.exception.OperationFailedException;
 import org.kuali.rice.rest.utils.RiceRestUtils;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.mvc.ControllerLinkBuilder;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.web.util.UriComponents;
 
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
@@ -58,15 +52,20 @@ public class KimGroupRestController {
     @ApiOperation(
             httpMethod = "GET",
             value = "Returns a kim group given the groupId",
-            response = GroupResource.class
+            response = GroupResource.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
-    @RequestMapping(value="/{groupId}", method = RequestMethod.GET)
-    public ResponseEntity<GroupResource>  getGroup(@ApiParam(value = "Id of the group", required = true) @PathVariable("groupId") String id) {
+    @RequestMapping(value = "/{groupId}", method = RequestMethod.GET)
+    public ResponseEntity<GroupResource> getGroup(@ApiParam(value = "Id of the group", required = true) @PathVariable("groupId") String id) {
         if (StringUtils.isBlank(id)) {
             throw new BadRequestException();
         }
-        Group group =  groupService.getGroup(id);
-        if(group == null){
+        Group group = groupService.getGroup(id);
+        if (group == null) {
             throw new NotFoundException();
         }
 
@@ -76,17 +75,23 @@ public class KimGroupRestController {
     @ApiOperation(
             httpMethod = "POST",
             value = "Creates a new group using the given Group.",
-            response = GroupResource.class
+            response = GroupResource.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
     @RequestMapping(method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
-    @ResponseBody ResponseEntity<GroupResource> createGroup(@ApiParam(value = "The group to be created", required = true) @RequestBody GroupResource groupResource){
-        if(null == groupResource)  {
+    @ResponseBody
+    ResponseEntity<GroupResource> createGroup(@ApiParam(value = "The group to be created", required = true) @RequestBody GroupResource groupResource) {
+        if (null == groupResource) {
             throw new BadRequestException();
         }
-        Group newGroup =  groupService.createGroup( GroupResource.toGroup(groupResource) );
+        Group newGroup = groupService.createGroup(GroupResource.toGroup(groupResource));
 
-        if(null == newGroup) {
+        if (null == newGroup) {
             throw new OperationFailedException("Could not create group!");
         }
 
@@ -100,24 +105,30 @@ public class KimGroupRestController {
                     "must have it's Id set and be a valid group that already exists.If the passed in groupId and the group.id " +
                     "values are different then this method will inactivate the old group and create a new group with the same " +
                     "members with the passed in groups properties.",
-            response = GroupResource.class
+            response = GroupResource.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
     @RequestMapping(value = "/{groupId}", method = RequestMethod.PUT)
-    @ResponseBody ResponseEntity<GroupResource> updateGroup(@ApiParam(value = "Id of the group to be updated", required = true) @PathVariable("groupId") String groupId,
-                                    @ApiParam(value = "Group object to use for update", required = true) @RequestBody GroupResource groupResource) {
+    @ResponseBody
+    ResponseEntity<GroupResource> updateGroup(@ApiParam(value = "Id of the group to be updated", required = true) @PathVariable("groupId") String groupId,
+                                              @ApiParam(value = "Group object to use for update", required = true) @RequestBody GroupResource groupResource) {
         if (StringUtils.isBlank(groupId) || groupResource == null) {
             throw new BadRequestException();
         }
 
         Group updatedGroup = null;
 
-        if(groupId.equals( groupResource.getId()) ) {
-            updatedGroup = groupService.updateGroup( GroupResource.toGroup(groupResource) );
+        if (groupId.equals(groupResource.getId())) {
+            updatedGroup = groupService.updateGroup(GroupResource.toGroup(groupResource));
         } else {
-            updatedGroup = groupService.updateGroup(groupId, GroupResource.toGroup(groupResource) );
+            updatedGroup = groupService.updateGroup(groupId, GroupResource.toGroup(groupResource));
         }
 
-        if(null == updatedGroup) {
+        if (null == updatedGroup) {
             throw new OperationFailedException("Failed to update group: " + groupId);
         }
 
@@ -126,21 +137,28 @@ public class KimGroupRestController {
 
     @ApiOperation(
             httpMethod = "GET",
-            value = "Get all the groups for a given principal, principal and namespaceCode or namespaceCode and groupName" ,
+            value = "Get all the groups for a given principal, principal and namespaceCode or namespaceCode and groupName",
             notes = "This will include all groups directly assigned as well as those inferred by the fact that they are" +
                     " members of higher level groups.",
-            response = GroupResource.class
+            response = GroupResource.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
     @RequestMapping(method = RequestMethod.GET)
-    public @ResponseBody ResponseEntity<Iterable<GroupResource>> retrieveGroups(@ApiParam(value = "The id of the Principal") @QueryParam("principalId") String principalId,
-                                                        @ApiParam(value = "The namespace code of the desired Groups to return") @QueryParam("namespaceCode") String namespaceCode,
-                                                        @ApiParam(value = "String that matches the desired Group's name") @QueryParam("groupName") String groupName) {
+    public
+    @ResponseBody
+    ResponseEntity<Iterable<GroupResource>> retrieveGroups(@ApiParam(value = "The id of the Principal") @QueryParam("principalId") String principalId,
+                                                           @ApiParam(value = "The namespace code of the desired Groups to return") @QueryParam("namespaceCode") String namespaceCode,
+                                                           @ApiParam(value = "String that matches the desired Group's name") @QueryParam("groupName") String groupName) {
         List<Group> groupList = null;
 
         if (StringUtils.isNotBlank(principalId) && StringUtils.isBlank(namespaceCode)) {
-            groupList =  groupService.getGroupsByPrincipalId(principalId);
+            groupList = groupService.getGroupsByPrincipalId(principalId);
         } else if (StringUtils.isNotBlank(principalId) && StringUtils.isNotBlank(namespaceCode)) {
-            groupList =  groupService.getGroupsByPrincipalIdAndNamespaceCode(principalId, namespaceCode);
+            groupList = groupService.getGroupsByPrincipalIdAndNamespaceCode(principalId, namespaceCode);
         } else if (StringUtils.isNotBlank(namespaceCode) && StringUtils.isNotBlank(groupName)) {
             Group group = groupService.getGroupByNamespaceCodeAndName(namespaceCode, groupName);
             groupList = new ArrayList<Group>();
@@ -150,27 +168,34 @@ public class KimGroupRestController {
         }
 
         List<GroupResource> groupResources = new ArrayList<GroupResource>();
-        for(Group group : groupList) {
+        for (Group group : groupList) {
             groupResources.add(groupResourceAssembler.toResource(group));
         }
 
-        return new ResponseEntity<Iterable<GroupResource>> (groupResources, HttpStatus.OK);
+        return new ResponseEntity<Iterable<GroupResource>>(groupResources, HttpStatus.OK);
     }
 
     @ApiOperation(
             httpMethod = "GET",
             value = "Get all the group ids for a given principal or principal and namespaceCode",
             notes = "This will include all groups directly assigned as well as those inferred by the fact that they are members of higher level groups.",
-            response = Link.class
+            response = Link.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
-    @RequestMapping(value="/group-refs", method = RequestMethod.GET)
-    public @ResponseBody ResponseEntity<Iterable<Link>> retrieveGroupRefs(@ApiParam(value = "The id of the Principal") @QueryParam("principalId") String principalId,
-                                                            @ApiParam(value = "The namespace code of the desired Groups to return") @QueryParam("namespaceCode") String namespaceCode) {
+    @RequestMapping(value = "/group-refs", method = RequestMethod.GET)
+    public
+    @ResponseBody
+    ResponseEntity<Iterable<Link>> retrieveGroupRefs(@ApiParam(value = "The id of the Principal") @QueryParam("principalId") String principalId,
+                                                     @ApiParam(value = "The namespace code of the desired Groups to return") @QueryParam("namespaceCode") String namespaceCode) {
 
         List<String> groupIds = new ArrayList<String>();
 
         if (StringUtils.isNotBlank(principalId) && StringUtils.isBlank(namespaceCode)) {
-            groupIds =  groupService.getGroupIdsByPrincipalId(principalId);
+            groupIds = groupService.getGroupIdsByPrincipalId(principalId);
         } else if (StringUtils.isNotBlank(principalId) && StringUtils.isNotBlank(namespaceCode)) {
             groupIds = groupService.getGroupIdsByPrincipalIdAndNamespaceCode(principalId, namespaceCode);
         } else {
@@ -178,61 +203,71 @@ public class KimGroupRestController {
         }
 
         List<Link> groupRefs = new ArrayList<Link>();
-        if(null != groupIds) {
-             for(String id : groupIds) {
+        if (null != groupIds) {
+            for (String id : groupIds) {
                 Link link = ControllerLinkBuilder.linkTo(KimGroupRestController.class).slash(id).withSelfRel();
                 groupRefs.add(link);
             }
         }
 
-        return new ResponseEntity<Iterable<Link>> (groupRefs, HttpStatus.OK);
+        return new ResponseEntity<Iterable<Link>>(groupRefs, HttpStatus.OK);
     }
 
     @ApiOperation(
             httpMethod = "GET",
             value = "Get a group member given a groupId and memberId",
-            response = GroupMemberResource.class
+            response = GroupMemberResource.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
-    @RequestMapping(value="/{groupId}/members/{memberId}", method = RequestMethod.GET)
-    public ResponseEntity<List<GroupMemberResource>> getGroupMember(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
-                                      @ApiParam(value = "The member id of the member", required=true) @PathVariable("memberId") String memberId) {
+    @RequestMapping(value = "/{groupId}/members/{memberId}", method = RequestMethod.GET)
+    public ResponseEntity<List<GroupMemberResource>> getGroupMember(@ApiParam(value = "The id of the group", required = true) @PathVariable("groupId") String groupId,
+                                                                    @ApiParam(value = "The member id of the member", required = true) @PathVariable("memberId") String memberId) {
 
-        if(StringUtils.isBlank(groupId) || StringUtils.isBlank(memberId))  {
+        if (StringUtils.isBlank(groupId) || StringUtils.isBlank(memberId)) {
             throw new BadRequestException();
         }
 
         List<GroupMember> members = groupService.getMembersOfGroup(groupId);
 
         List<GroupMemberResource> memberResources = new ArrayList<GroupMemberResource>();
-        for(GroupMember member : members) {
-            if(memberId.equals(member.getMemberId())) {
-                memberResources.add ( groupMemberResourceAssembler.toResource(member));
+        for (GroupMember member : members) {
+            if (memberId.equals(member.getMemberId())) {
+                memberResources.add(groupMemberResourceAssembler.toResource(member));
             }
         }
 
-        return new ResponseEntity<List<GroupMemberResource>> (memberResources, HttpStatus.OK);
+        return new ResponseEntity<List<GroupMemberResource>>(memberResources, HttpStatus.OK);
     }
 
     @ApiOperation(
             httpMethod = "GET",
             value = "Gets a list of group members that belong to the group",
-            response = GroupMemberResource.class
+            response = GroupMemberResource.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
-    @RequestMapping(value="/{groupId}/members", method = RequestMethod.GET)
-    public ResponseEntity<Iterable<GroupMemberResource>> getMembersForGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId) {
-        if(StringUtils.isBlank(groupId)) {
+    @RequestMapping(value = "/{groupId}/members", method = RequestMethod.GET)
+    public ResponseEntity<Iterable<GroupMemberResource>> getMembersForGroup(@ApiParam(value = "The id of the group", required = true) @PathVariable("groupId") String groupId) {
+        if (StringUtils.isBlank(groupId)) {
             throw new BadRequestException();
         }
 
         List<GroupMember> members = groupService.getMembersOfGroup(groupId);
 
         List<GroupMemberResource> memberResources = new ArrayList<GroupMemberResource>();
-        for(GroupMember member : members) {
+        for (GroupMember member : members) {
             GroupMemberResource gmr = groupMemberResourceAssembler.toResource(member);
             memberResources.add(gmr);
         }
 
-        return new ResponseEntity<Iterable<GroupMemberResource>> (memberResources, HttpStatus.OK);
+        return new ResponseEntity<Iterable<GroupMemberResource>>(memberResources, HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -240,28 +275,33 @@ public class KimGroupRestController {
             value = "Gets a list of group member ids of type PRINCIPAL given a group id",
             notes = "If directMembersOnly is true the list will contain only direct member principal ids otherwise it will contain all member principal ids." +
                     "By default it is false",
-            response = Link.class
+            response = Link.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
-    @RequestMapping(value="/{groupId}/member-refs/principal", method = RequestMethod.GET)
-    public ResponseEntity<Iterable<Link>> getDirectPrincipalMemberRefsForGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
-                                                                 @ApiParam(value = "Flag for direct members") @QueryParam("directMembersOnly") boolean directMembersOnly) {
+    @RequestMapping(value = "/{groupId}/member-refs/principal", method = RequestMethod.GET)
+    public ResponseEntity<Iterable<Link>> getDirectPrincipalMemberRefsForGroup(@ApiParam(value = "The id of the group", required = true) @PathVariable("groupId") String groupId,
+                                                                               @ApiParam(value = "Flag for direct members") @QueryParam("directMembersOnly") boolean directMembersOnly) {
         List<String> memberIds = null;
 
-        if(directMembersOnly) {
+        if (directMembersOnly) {
             memberIds = groupService.getDirectMemberPrincipalIds(groupId);
         } else {
             memberIds = groupService.getMemberPrincipalIds(groupId);
         }
 
         List<Link> memberRefs = new ArrayList<Link>();
-        if(null != memberIds) {
-            for(String id : memberIds) {
+        if (null != memberIds) {
+            for (String id : memberIds) {
                 Link link = ControllerLinkBuilder.linkTo(KimGroupRestController.class).slash(groupId).slash("members").slash(id).withSelfRel();
-                memberRefs.add( link );
+                memberRefs.add(link);
             }
         }
 
-        return new ResponseEntity<Iterable<Link>> (memberRefs, HttpStatus.OK);
+        return new ResponseEntity<Iterable<Link>>(memberRefs, HttpStatus.OK);
     }
 
     @ApiOperation(
@@ -269,48 +309,58 @@ public class KimGroupRestController {
             value = "Gets a list of group member ids of type GROUP given a group id",
             notes = "If directMembersOnly is true the list will contain only direct member group ids otherwise it will contain all member group ids." +
                     "By default it is false",
-            response = Link.class
+            response = Link.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
-    @RequestMapping(value="/{groupId}/member-refs/group", method = RequestMethod.GET)
-    public ResponseEntity<Iterable<Link>> getGroupMemberRefsForGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
-                                                       @ApiParam(value = "Flag for direct members") @QueryParam("directMembersOnly") boolean directMembersOnly) {
+    @RequestMapping(value = "/{groupId}/member-refs/group", method = RequestMethod.GET)
+    public ResponseEntity<Iterable<Link>> getGroupMemberRefsForGroup(@ApiParam(value = "The id of the group", required = true) @PathVariable("groupId") String groupId,
+                                                                     @ApiParam(value = "Flag for direct members") @QueryParam("directMembersOnly") boolean directMembersOnly) {
 
         List<String> memberIds = null;
 
-        if(directMembersOnly) {
+        if (directMembersOnly) {
             memberIds = groupService.getDirectMemberGroupIds(groupId);
         } else {
             memberIds = groupService.getMemberGroupIds(groupId);
         }
 
         List<Link> memberRefs = new ArrayList<Link>();
-        if(null != memberIds) {
-            for(String id : memberIds) {
+        if (null != memberIds) {
+            for (String id : memberIds) {
                 Link link = ControllerLinkBuilder.linkTo(KimGroupRestController.class).slash(groupId).slash("members").slash(id).withSelfRel();
-                memberRefs.add( link );
+                memberRefs.add(link);
             }
         }
 
-        return new ResponseEntity<Iterable<Link>> (memberRefs, HttpStatus.OK);
+        return new ResponseEntity<Iterable<Link>>(memberRefs, HttpStatus.OK);
     }
 
     @ApiOperation(
             httpMethod = "PUT",
             value = "Adds a new member of type PRINCIPAL to the group",
-            notes = "The member should be an existing principal" ,
-            response = Link.class
+            notes = "The member should be an existing principal",
+            response = Link.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
     @RequestMapping(value = "/{groupId}/members/principal/{memberId}", method = RequestMethod.PUT)
     @ResponseBody
-    ResponseEntity<Link> addPrincipalToGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
-                                               @ApiParam(value = "The member id of the member", required=true) @PathVariable("memberId") String memberId) {
+    ResponseEntity<Link> addPrincipalToGroup(@ApiParam(value = "The id of the group", required = true) @PathVariable("groupId") String groupId,
+                                             @ApiParam(value = "The member id of the member", required = true) @PathVariable("memberId") String memberId) {
         if (StringUtils.isBlank(groupId) || StringUtils.isBlank(memberId)) {
             throw new BadRequestException();
         }
 
-        boolean status =  groupService.addPrincipalToGroup(memberId, groupId);
+        boolean status = groupService.addPrincipalToGroup(memberId, groupId);
 
-        if(!status) {
+        if (!status) {
             throw new OperationFailedException("Could not add principal " + memberId + " to group " + groupId);
         }
 
@@ -322,20 +372,25 @@ public class KimGroupRestController {
     @ApiOperation(
             httpMethod = "PUT",
             value = "Adds a new member of type GROUP to the group",
-            notes = "The group should be an existing group" ,
-            response = Link.class
+            notes = "The group should be an existing group",
+            response = Link.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
     @RequestMapping(value = "/{groupId}/members/group/{memberId}", method = RequestMethod.PUT)
     @ResponseBody
-    ResponseEntity<Link> addGroupToGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
-                                           @ApiParam(value = "The member id of the member", required=true) @PathVariable("memberId") String memberId) {
+    ResponseEntity<Link> addGroupToGroup(@ApiParam(value = "The id of the group", required = true) @PathVariable("groupId") String groupId,
+                                         @ApiParam(value = "The member id of the member", required = true) @PathVariable("memberId") String memberId) {
         if (StringUtils.isBlank(groupId) || StringUtils.isBlank(memberId)) {
             throw new BadRequestException();
         }
 
-        boolean status =  groupService.addGroupToGroup(memberId, groupId);
+        boolean status = groupService.addGroupToGroup(memberId, groupId);
 
-        if(!status) {
+        if (!status) {
             throw new OperationFailedException("Could not add group " + memberId + " to group " + groupId);
         }
 
@@ -347,18 +402,23 @@ public class KimGroupRestController {
     @ApiOperation(
             httpMethod = "POST",
             value = "Add a new member to the group using a given group member",
-            response = GroupMemberResource.class
+            response = GroupMemberResource.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
     @RequestMapping(value = "/{groupId}/members", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    ResponseEntity<GroupMemberResource> createGroupMember(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
-                                  @ApiParam(value = "The group member to use", required=true) @RequestBody GroupMemberResource groupMemberResource) {
+    ResponseEntity<GroupMemberResource> createGroupMember(@ApiParam(value = "The id of the group", required = true) @PathVariable("groupId") String groupId,
+                                                          @ApiParam(value = "The group member to use", required = true) @RequestBody GroupMemberResource groupMemberResource) {
         if (StringUtils.isBlank(groupId) || groupMemberResource == null) {
             throw new BadRequestException();
         }
 
-        groupService.createGroupMember( GroupMemberResource.toGroupMember(groupMemberResource) );
+        groupService.createGroupMember(GroupMemberResource.toGroupMember(groupMemberResource));
 
         /**
          *  When the GroupMember is saved, BO saves it as SQL time this causes the time to be changed to local timezone.
@@ -369,7 +429,7 @@ public class KimGroupRestController {
 
         List<GroupMember> groupMembers = groupService.getMembersOfGroup(groupId);
         GroupMember newMember = null;
-        for(GroupMember member : groupMembers) {
+        for (GroupMember member : groupMembers) {
             if (member.getMemberId().equals(groupMemberResource.getMemberId())
                     && member.getType().equals(groupMemberResource.getType())
                     && member.getActiveFromDate().getMillis() == groupMemberResource.getActiveFromDate().getMillis()
@@ -379,7 +439,7 @@ public class KimGroupRestController {
             }
         }
 
-        if(null == newMember) {
+        if (null == newMember) {
             throw new OperationFailedException("Could not find the newly created GroupMember!");
         }
 
@@ -392,18 +452,23 @@ public class KimGroupRestController {
             httpMethod = "PUT",
             value = "Updates an existing group using the given GroupMember ",
             notes = "The passed in GroupMember must have it's Id set and be a valid groupMember that already exists",
-            response = GroupMemberResource.class
+            response = GroupMemberResource.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
     @RequestMapping(value = "/{groupId}/members/{memberId}", method = RequestMethod.PUT)
     @ResponseBody
-    GroupMemberResource updateGroupMember(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
-                                          @ApiParam(value = "The member id of the member", required=true) @PathVariable("memberId") String memberId,
-                                          @ApiParam(value = "The group member to update", required=true) @RequestBody GroupMemberResource groupMemberResource) {
+    GroupMemberResource updateGroupMember(@ApiParam(value = "The id of the group", required = true) @PathVariable("groupId") String groupId,
+                                          @ApiParam(value = "The member id of the member", required = true) @PathVariable("memberId") String memberId,
+                                          @ApiParam(value = "The group member to update", required = true) @RequestBody GroupMemberResource groupMemberResource) {
         if (StringUtils.isBlank(groupId) || StringUtils.isBlank(memberId) || groupMemberResource == null) {
             throw new BadRequestException();
         }
 
-        GroupMember member =  groupService.updateGroupMember( GroupMemberResource.toGroupMember(groupMemberResource) );
+        GroupMember member = groupService.updateGroupMember(GroupMemberResource.toGroupMember(groupMemberResource));
 
         return GroupMemberResource.fromGroupMember(member);
 
@@ -412,17 +477,22 @@ public class KimGroupRestController {
     @ApiOperation(
             httpMethod = "DELETE",
             value = "Deletes an existing member from a Group depending on whether it is of type PRINCIPAL or GROUP",
-            response = Link.class
+            response = Link.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
     @RequestMapping(value = "/{groupId}/members/{memberId}", method = RequestMethod.DELETE)
-    public ResponseEntity<Link> removeMemberFromGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId,
-                                                      @ApiParam(value = "The member id of the member", required=true) @PathVariable("memberId") String memberId) {
+    public ResponseEntity<Link> removeMemberFromGroup(@ApiParam(value = "The id of the group", required = true) @PathVariable("groupId") String groupId,
+                                                      @ApiParam(value = "The member id of the member", required = true) @PathVariable("memberId") String memberId) {
         if (StringUtils.isBlank(groupId) || StringUtils.isBlank(memberId)) {
             throw new BadRequestException();
         }
 
         ResponseEntity<List<GroupMemberResource>> members = getGroupMember(groupId, memberId);
-        if(members.getBody() == null || members.getBody().size() > 0) {
+        if (members.getBody() == null || members.getBody().size() == 0) {
             throw new NotFoundException("No members found with member Id: " + memberId + " for group: " + groupId);
         }
 
@@ -430,13 +500,13 @@ public class KimGroupRestController {
 
         boolean status = false;
 
-        if(MemberType.PRINCIPAL.equals(member.getType())) {
+        if (MemberType.PRINCIPAL.equals(member.getType())) {
             status = groupService.removePrincipalFromGroup(memberId, groupId);
-        }  else  if(MemberType.GROUP.equals(member.getType())) {
+        } else if (MemberType.GROUP.equals(member.getType())) {
             status = groupService.removeGroupFromGroup(memberId, groupId);
         }
 
-        if(!status) {
+        if (!status) {
             throw new OperationFailedException("Could not remove member " + memberId + " from group " + groupId);
         }
 
@@ -447,10 +517,15 @@ public class KimGroupRestController {
     @ApiOperation(
             httpMethod = "DELETE",
             value = "Removes all members from the group with the given groupId.",
-            response = Link.class
+            response = Link.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
     @RequestMapping(value = "/{groupId}/members", method = RequestMethod.DELETE)
-    public ResponseEntity<Link> removeAllMemberFromGroup(@ApiParam(value = "The id of the group", required=true) @PathVariable("groupId") String groupId ) {
+    public ResponseEntity<Link> removeAllMemberFromGroup(@ApiParam(value = "The id of the group", required = true) @PathVariable("groupId") String groupId) {
         if (StringUtils.isBlank(groupId)) {
             throw new BadRequestException();
         }
@@ -466,13 +541,19 @@ public class KimGroupRestController {
             httpMethod = "GET",
             value = "Lists groups using paging and limiting results",
             notes = "Filters can be applied to limit results",
-            response = RicePagedResources.class
+            response = RicePagedResources.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
     @RequestMapping(value = "/search", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON)
-    public @ResponseBody
+    public
+    @ResponseBody
     ResponseEntity<RicePagedResources<GroupResource>> findGroups(@ApiParam(value = "Starting index of results to fetch") @RequestParam(value = "startIndex", defaultValue = "0", required = false) int startIndex,
                                                                  @ApiParam(value = "Max limit of items returned") @RequestParam(value = "limit", defaultValue = RiceRestConstants.MAX_RESULTS, required = false) int limit,
-                                                                 @ApiParam(value = "Filters to apply in the format: filter=&lt;name&gt;::&lt;wildcardedValue&gt;|&lt;name&gt;::&lt;wildcardedValue&gt;") @RequestParam(value = "filter", required = false) String filter) {
+                                                                 @ApiParam(value = "Filters to apply in the format: filter=&lt;name&gt;::&lt;wildcardedValue&gt;|&lt;name&gt;::&lt;wildcardedValue&gt;") @RequestParam(value = "filter", required = true) String filter) {
 
         Map<String, String> criteria = RiceRestUtils.translateFilterToMap(filter);
         QueryByCriteria queryByCriteria = null;
@@ -494,7 +575,7 @@ public class KimGroupRestController {
                 }
                 if (CollectionUtils.isNotEmpty(principalIds)) {
                     Timestamp currentTime = new Timestamp(Calendar.getInstance().getTimeInMillis());
-                    predicates.add( and(
+                    predicates.add(and(
                             in("members.memberId", principalIds.toArray(
                                     new String[principalIds.size()])),
                             equal("members.typeCode", KimConstants.KimGroupMemberTypes.PRINCIPAL_MEMBER_TYPE.getCode()),
@@ -503,14 +584,14 @@ public class KimGroupRestController {
                                     or(isNull("members.activeToDateValue"), greaterThan("members.activeToDateValue", currentTime))
                             )
                     ));
-                }else {
+                } else {
                     validPrncplFoundIfPrncplCritPresent = false;
                 }
 
             }
             criteria.remove(KimConstants.UniqueKeyConstants.PRINCIPAL_NAME);
 
-            if(!criteria.isEmpty()) {
+            if (!criteria.isEmpty()) {
                 predicates.add(PredicateUtils.convertMapToPredicate(criteria));
             }
 
@@ -530,8 +611,8 @@ public class KimGroupRestController {
 
             // Really bad predicate to SQL query building causes 7776 groups with same Id to be returned when 1 is exptected (issue exists in GroupService.findGroups)
             Set<String> uniqueGroupIds = new HashSet<String>();
-            for(Group group : groupResults.getResults()) {
-                if(!uniqueGroupIds.contains( group.getId()) ) {
+            for (Group group : groupResults.getResults()) {
+                if (!uniqueGroupIds.contains(group.getId())) {
                     uniqueGroupIds.add(group.getId());
                     groups.add(group);
                 }
@@ -544,6 +625,16 @@ public class KimGroupRestController {
             queryParams.put("filter", filter);
         }
 
+        if (startIndex >= groups.size()) {
+            groups = new ArrayList<Group>();
+        }
+
+        int endIndex = startIndex + limit;
+        if (endIndex > groups.size()) {
+            endIndex = groups.size();
+        }
+
+        groups = groups.subList(startIndex, endIndex);
 
         RicePagedResources<GroupResource> result = new RicePagedResources<GroupResource>(startIndex,
                 limit, groupResourceAssembler.toResources(groups), queryParams, 0);
@@ -556,12 +647,17 @@ public class KimGroupRestController {
             httpMethod = "GET",
             value = "Lists group Members using paging and limiting results",
             notes = "Filters can be applied to limit results",
-            response = RicePagedResources.class
+            response = RicePagedResources.class,
+            authorizations = {@Authorization(value = "oauth2",
+                    scopes = {
+                            @AuthorizationScope(scope = "access", description = "Read/write groups/members")
+                    }
+            )}
     )
-    @RequestMapping(value="/search/members", method = RequestMethod.GET)
+    @RequestMapping(value = "/search/members", method = RequestMethod.GET)
     public ResponseEntity<RicePagedResources<GroupMemberResource>> findGroupMembers(@ApiParam(value = "Starting index of results to fetch") @RequestParam(value = "startIndex", defaultValue = "0", required = false) int startIndex,
                                                                                     @ApiParam(value = "Max limit of items returned") @RequestParam(value = "limit", defaultValue = RiceRestConstants.MAX_RESULTS, required = false) int limit,
-                                                                                    @ApiParam(value = "Filters to apply in the format: filter=&lt;name&gt;::&lt;wildcardedValue&gt;|&lt;name&gt;::&lt;wildcardedValue&gt;") @RequestParam(value = "filter", required = false) String filter) {
+                                                                                    @ApiParam(value = "Filters to apply in the format: filter=&lt;name&gt;::&lt;wildcardedValue&gt;|&lt;name&gt;::&lt;wildcardedValue&gt;") @RequestParam(value = "filter", required = true) String filter) {
 
         List<Predicate> predicates = new ArrayList<Predicate>();
         QueryByCriteria queryByCriteria = null;
@@ -569,8 +665,8 @@ public class KimGroupRestController {
         Map<String, String> criteria = RiceRestUtils.translateFilterToMap(filter);
 
         Timestamp currentTime = new Timestamp(Calendar.getInstance().getTimeInMillis());
-        if(!criteria.isEmpty())    {
-            if(criteria.containsKey("principalId") && criteria.containsKey("groupId")){
+        if (!criteria.isEmpty()) {
+            if (criteria.containsKey("principalId") && criteria.containsKey("groupId")) {
                 predicates.add(
                         and(
                                 equal(KIMPropertyConstants.GroupMember.MEMBER_ID, criteria.get("principalId")),
@@ -594,7 +690,7 @@ public class KimGroupRestController {
 
         List<GroupMember> groupMembers = new ArrayList<GroupMember>();
         GroupMemberQueryResults groupMemberResults = KimApiServiceLocator.getGroupService().findGroupMembers(queryByCriteria);
-        groupMembers.addAll( groupMemberResults.getResults() );
+        groupMembers.addAll(groupMemberResults.getResults());
 
         Map<String, String> queryParams = new HashMap<String, String>();
 
@@ -602,6 +698,16 @@ public class KimGroupRestController {
             queryParams.put("filter", filter);
         }
 
+        if (startIndex >= groupMembers.size()) {
+            groupMembers = new ArrayList<GroupMember>();
+        }
+
+        int endIndex = startIndex + limit;
+        if (endIndex > groupMembers.size()) {
+            endIndex = groupMembers.size();
+        }
+
+        groupMembers = groupMembers.subList(startIndex, endIndex);
 
         RicePagedResources<GroupMemberResource> result = new RicePagedResources<GroupMemberResource>(startIndex,
                 limit, groupMemberResourceAssembler.toResources(groupMembers), queryParams, 0);
